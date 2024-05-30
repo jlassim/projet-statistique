@@ -1,0 +1,419 @@
+# Rapport du projet R
+
+### Description du projet :
+
+Cet ensemble de données contient des données sur les indicateurs clés des 6 premières économies mondiales (par PIB), notamment les États-Unis, la Chine, le Japon, l’Allemagne, le Royaume-Uni et l’Inde entre l’intervalle de temps de 30 ans de 1990 à 2020. Données extraites du site Web de la Banque mondiale et traitées à l’aide de la bibliothèque Python Pandas. Ce jeu de données peut être utilisé pour effectuer des analyses et des prévisions de séries chronologiques.
+
+La trame de données top_six contient 17 colonnes (dont 15 sont des indicateurs économiques) et 180 lignes Chaque pays a 30 lignes (30 ans) total = 6 pays \* 30 ans = 180)).
+
+## 1-Collection des données
+
+Après télechargement du dataset top-six-economies , d'après [ce site](https://www.kaggle.com/datasets/charanchandrasekaran/top-6-economies-in-the-world-by-gdp/data) on le télécharge dans R par la commande suivante:
+
+```{r}
+library(readr)
+top_six_economies <- read_csv("C:\\Users\\majla\\Downloads\\top_six_economies.csv")
+```
+
+![Résultat de lecture des données](images/Capture%20d'écran%202024-04-25%20103934-01.png):
+
+On a renommé les colonnes pour une visualation plus sipmle par ce code :
+
+```{r}
+names(top_six_economies)[names(top_six_economies) == 'GDP (current US$)'] <- 'GDP( $Bn )'
+names(top_six_economies)[names(top_six_economies) == 'GDP, PPP (current international $)'] <- 'GDP, PPP ($Bn)'
+names(top_six_economies)[names(top_six_economies) == 'Country Name'] <- 'Country'
+names(top_six_economies)[names(top_six_economies) == 'Imports of goods and services (% of GDP)'] <- 'Imports ($Bn)'
+names(top_six_economies)[names(top_six_economies) == 'Exports of goods and services (% of GDP)'] <- 'Exports ($Bn)'
+names(top_six_economies)[names(top_six_economies) == 'Total reserves (includes gold, current US$)'] <- 'Total Reserves ($Bn)'
+names(top_six_economies)[names(top_six_economies) == 'Unemployment, total (% of total labor force) (modeled ILO estimate)'] <- 'Unemployment'
+names(top_six_economies)[names(top_six_economies) == 'Life expectancy at birth, total (years)'] <- 'Life expectancy (years)'
+names(top_six_economies)[names(top_six_economies) == 'Poverty headcount ratio at $1.90 a day (2011 PPP) (% of population)'] <- 'Poverty'
+names(top_six_economies)[names(top_six_economies) == 'Personal remittances, received (% of GDP)'] <- 'Remittances (% of GDP)'
+names(top_six_economies)[names(top_six_economies) == 'Inflation,consumer prices (annual %)'] <- 'Inflation'
+names(top_six_economies)[names(top_six_economies) == 'Central government debt, total (% of GDP)'] <- 'Debt'
+```
+
+## 2-Nettoyage des données
+
+### Elimination des valeurs manquantes
+
+1\* On a cherché les valeurs manquantes :
+
+```{r}
+#find null values
+null_counts <- colSums(is.na(top_six_economies))
+print(null_counts[null_counts != 0])
+```
+
+![](images/Capture%20d'écran%202024-04-25%20110039.png){fig-align="center"}
+
+2\* On a éliminer ces valeurs par ffill et bfill (first with forward fill and then with backward fill)
+
+```{r}
+#Fill missing values in 'Debt' column
+top_six_economies$`Debt` <- na.locf(top_six_economies$`Debt`, fromLast = FALSE, na.rm = FALSE)
+top_six_economies$`Debt` <- na.locf(top_six_economies$`Debt`, fromLast = TRUE, na.rm = FALSE)
+
+# Fill missing values in 'Poverty' column
+top_six_economies$Poverty <- na.locf(top_six_economies$Poverty, fromLast = FALSE, na.rm = FALSE)
+top_six_economies$Poverty <- na.locf(top_six_economies$Poverty, fromLast = TRUE, na.rm = FALSE)
+```
+
+### Elimination des erreurs et des incohérences
+
+1\* on a cherché des incohérences au niveau des données par un résumé des variables :
+
+```{r}
+#Résumé des données
+summary(top_six_economies)
+str(top_six_economies)
+```
+
+![](images/Capture%20d'écran%202024-04-25%20113255.png){fig-align="center"}
+
+![](images/Capture%20d'écran%202024-04-25%20113313.png){fig-align="center"}
+
+![](images/Capture%20d'écran%202024-04-25%20113326.png){fig-align="center"}
+
+=\> il parait qu'il n ya pas des erreurs ni incohérences.
+
+## 3-Visualisation et Analyse des données
+
+### Le PIB moyen des pays en milliards de dollars
+
+Le produit intérieur brut (PIB) est l'indicateur économique qui permet de quantifier la valeur totale de la « production de richesse » annuelle effectuée par les agents économiques (ménages, entreprises, administrations publiques) résidant à l'intérieur d'un territoire. On a clculé Le PIB moyen des pays en milliards de dollars puis on a créer un bar plot des moyennes de PIB de chaque pays en milliars de dollars pour les analyser
+
+```{r}
+# Calculate the mean GDP of countries in Billion Dollars 
+GDP <- aggregate(`GDP( $Bn )` ~ Country, data = top_six_economies, FUN = mean) 
+# Print the mean GDP of countries
+print(GDP)
+# Create a bar plot of the mean GDP 
+barplot(GDP$`GDP( $Bn )`, names.arg = GDP$Country, xlab = "Country", ylab = "Mean GDP ($Bn)", main = "Mean GDP of Countries") 
+```
+
+### PIB moyen par habitant
+
+Pour le calculer, on divise le PIB total par le nombre d’habitants du pays1. Ce chiffre permet de mieux comprendre la situation économique et le niveau de vie des citoyens. On a clculé Le PIB moyen par habitant puis on a créer un bar plot de PIB moyen par habitants
+
+```{r}
+# Calculate the mean Per Capita Income (PCI) of countries in dollars
+PCI <- aggregate(`GDP per capita (current US$)` ~ Country, data = top_six_economies, FUN = mean)
+# Print the mean PCI of countries
+print(PCI)
+# Create a bar plot of the mean PCI
+barplot(PCI$`GDP per capita (current US$)`, names.arg = PCI$Country, xlab = "Country", ylab = "Mean PCI (USD)", main = "Mean Per Capita Income of Countries")
+```
+
+### GDP/PPP in Billion Dollars
+
+Le PIB à parité de pouvoir d'achat (PPA) est une mesure qui permet de comparer des données telles que le produit intérieur brut (PIB) ou le PIB par habitant.
+
+```{r}
+# Calculate the mean GDP/PPP in Billion Dollars
+GDP_PPP <- aggregate(`GDP, PPP ($Bn)` ~ Country, data = top_six_economies, FUN = mean)
+# Print the mean GDP/PPP in Billion Dollars for each country
+print(GDP_PPP)
+# Create a bar plot of the mean GDP/PPP
+barplot(GDP_PPP$`GDP, PPP ($Bn)`, names.arg = GDP_PPP$Country, xlab = "Country", ylab = "Mean GDP/PPP ($Bn)", main = "Mean GDP/PPP of Countries")
+```
+
+### Importations par décennie pour tous les pays
+
+\*\*\* Getting List of Countries, Start Year, and Last Year
+
+```{r}
+Countries <- unique(top_six_economies$Country)
+Start_year <- min(top_six_economies$Year)
+Last_year <- max(top_six_economies$Year)
+```
+
+![liste](images/Capture%20d'écran%202024-04-25%20160846.png){fig-align="center"} Les graphes qui représentent les imports des pays par decennie sont réalisé par ce code en utilisant les packages suivantes `library(dplyr) library(ggplot2)` :
+
+```{r}
+Imports_long <- tidyr::pivot_longer(Imports, -Country)
+ggplot(Imports_long, aes(x = name, y = value, color = Country, group = Country)) +
+  geom_line() +
+  labs(x = "Decade", y = "Mean Imports ($Bn)", title = "Imports by Decade") +
+  scale_color_manual(values = colors) +
+  theme_minimal()
+```
+
+### Exportations par décennie pour tous les pays
+
+Du meme pour les exportations
+
+```{r}
+# Plotting
+ggplot(Exports_long, aes(x = name, y = value, color = Country, group = Country)) +
+  geom_line() +
+  labs(x = "Decade", y = "Mean Exports ($Bn)", title = "Exports by Decade") +
+  scale_color_manual(values = colors) +
+  theme_minimal()
+```
+
+### Années de récession pour chaque pays
+
+On a réalisé une boucle qui pour chaque pays peut extraire l'année de récession avec la valeur de GDP et contrairement l'année avec la valeur maximale du GDP:
+
+```{r}
+for (C in unique(top_six_economies$Country)) {
+  # Find the year and GDP with the minimum value
+  x_min <- min(top_six_economies[top_six_economies$Country == C, "GDP( $Bn )"])
+  z_min <- top_six_economies[top_six_economies$`GDP( $Bn )` == x_min, "Year"]
+  print(paste("The Year of Recession for", C, "was in year", z_min, "with GDP", x_min))
+  
+  # Find the year and GDP with the maximum value
+  x_max <- max(top_six_economies[top_six_economies$Country == C, "GDP( $Bn )"])
+  z_max <- top_six_economies[top_six_economies$`GDP( $Bn )` == x_max, "Year"]
+  print(paste("The Year with maximum GDP for", C, "was in year", z_max, "with GDP", x_max))
+  
+  print("******************************")
+}
+```
+
+![résultat](images/Capture%20d'écran%202024-04-25%20172617.png){fig-align="center"}
+
+### Corrélation
+
+1\* On a sélectionné toutes les variables quantitatives du dataset pour etudier les dépendances entre eux.
+
+```{r}
+selected_variables <- top_six_economies[, c("GDP( $Bn )", "GDP per capita (current US$)", "GDP growth (annual %)", "Imports ($Bn)", "Exports ($Bn)", "Debt", "Total Reserves ($Bn)", "Unemployment", "Inflation, consumer prices (annual %)", "Population, total", "Life expectancy (years)", "Poverty")]
+# Compute the correlation matrix
+correlation_matrix <- cor(selected_variables)
+print(correlation_matrix)
+```
+
+En probabilités et en statistique, la corrélation entre plusieurs variables aléatoires ou statistiques est une notion de liaison qui contredit leur indépendance.
+
+Cette corrélation est très souvent réduite à la corrélation linéaire entre variables quantitatives, c’est-à-dire l’ajustement d’une variable par rapport à l’autre par une relation affine obtenue par régression linéaire.
+
+2\* On a visualisé la matrice de corrélation :
+
+Une matrice de corrélation est utilisée pour évaluer la dépendance entre plusieurs variables en même temps. Le résultat est une table contenant les coefficients de corrélation entre chaque variable et les autres.
+
+```{r}
+library(corrplot)
+# Visualize correlation matrix
+corrplot(correlation_matrix, method = "circle", type = "upper")
+# Sélectionner les variables avec une corrélation significative avec la variable cible
+significant_variables <- names(which(abs(correlation_matrix["GDP per capita (current US$)", ]) > 0.5))
+print(significant_variables)
+```
+
+3\* Analyse du matrice de corrélation :
+
+\*\* Une corrélation de 1 indique une relation positive parfaite entre les deux variables. Cela signifie qu'à mesure que la valeur d'une variable augmente, la valeur de l'autre variable augmente également.
+
+\*\* Une corrélation de -1 indique une relation négative parfaite entre les deux variables. Cela signifie qu'à mesure que la valeur d'une variable augmente, la valeur de l'autre variable diminue.
+
+\*\* Une corrélation de 0 indique qu'il n'y a pas de relation linéaire entre les deux variables. Cela ne signifie pas nécessairement qu'il n'y a pas de relation entre les variables, mais simplement que la relation n'est pas une ligne droite.
+
+\*/ On va prendre comme exemple CHINA etUNITED-STATES pour réaliser une étude plus profonde sur la corréltion entre les variables du dataset :
+
+*\|\|*)Importations et Exportations (corrélation presque 1): \*\* Chine:
+
+```{r}
+# Plot exports and imports over time for China
+ggplot() +
+  geom_line(data = china_data, aes(x = Year, y = `Exports ($Bn)`, color = "Exports")) +
+  geom_line(data = china_data, aes(x = Year, y = `Imports ($Bn)`, color = "Imports")) +
+  labs(x = "Year", y = "Value ($Bn)", color = "Variable") +
+  scale_color_manual(values = c("Exports" = "blue", "Imports" = "red")) +
+  ggtitle("Exports and Imports Over Time - China")
+```
+
+\*\* Les etats-unis:
+
+```{r}
+# Plot exports and imports over time for the United States
+ggplot() +
+  geom_line(data = us_data, aes(x = Year, y = `Exports ($Bn)`, color = "Exports")) +
+  geom_line(data = us_data, aes(x = Year, y = `Imports ($Bn)`, color = "Imports")) +
+  labs(x = "Year", y = "Value ($Bn)", color = "Variable") +
+  scale_color_manual(values = c("Exports" = "blue", "Imports" = "red")) +
+  ggtitle("Exports and Imports Over Time - United States")
+```
+
+*\|\|*) Life Expectancy and GDP Per Capita ( corrélation presque 1):
+
+\*\* Chine:
+
+```{r}
+# Scatter plot with trend line for China
+ggplot(china_data, aes(x = `GDP per capita (current US$)`, y = `Life expectancy (years)`)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "GDP Per Capita ($)", y = "Life Expectancy (years)",
+       title = "Relationship between GDP Per Capita and Life Expectancy (China)")
+```
+
+\*\* Les etats-unis :
+
+```{r}
+# Scatter plot with trend line for the United States
+ggplot(us_data, aes(x = `GDP per capita (current US$)`, y = `Life expectancy (years)`)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "GDP Per Capita ($)", y = "Life Expectancy (years)",
+       title = "Relationship between GDP Per Capita and Life Expectancy (United States)")
+```
+
+*\|\|*)PIB par habitant et pauvreté ( corrélation presque -1):
+
+\*\* Chine
+
+```{r}
+# Scatter plot with trend line for China
+ggplot(china_data, aes(x = `GDP per capita (current US$)`, y = Poverty)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "GDP Per Capita ($)", y = "Poverty (%)",
+       title = "Relationship between GDP Per Capita and Poverty (China)")
+```
+
+*\|\|*)Espérance de vie et pauvreté ( corrélation presque -1):
+
+\*\* Chine
+
+```{r}
+# Scatter plot with trend line for China
+ggplot(china_data, aes(x = Poverty , y = `Life expectancy (years)`)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Poverty (%)", y = "Life Expectancy (years)",
+       title = "Relationship between Life Expectancy (years) and Poverty (China)")
+```
+
+\*\* US
+
+```{r}
+# Scatter plot with trend line for US
+
+ggplot(us_data, aes(x = Poverty , y = `Life expectancy (years)`)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Poverty (%)", y = "Life Expectancy (years)",
+       title = "Relationship between Life Expectancy (years) and Poverty (China)")
+```
+## 4-Prediction des données
+On a essayé de f    ire des prediction à plusieurs variable de ce dataset analysé comme le GDP , l'inflation , les exportations  et les imporations. Pour ceci:
+Plusieurs modèles statistiques peuvent être utilisés pour faire des estimations éclairées.
+1. Modèle de régression linéaire
+
+Un modèle de régression linéaire est une approche simple et courante pour prédire une variable continue en fonction d'une ou plusieurs variables indépendantes. Dans ce cas, la variable prédite serait le PIB par habitant et la variable indépendante serait l'année. Le modèle peut être exprimé par l'équation suivante :
+
+PIB par habitant = α + β * Année + ε
+où :
+
+α est l'ordonnée à l'origine, qui représente le PIB par habitant prédit lorsque l'année est égale à zéro.
+β est le coefficient de pente, qui représente la variation du PIB par habitant par an.
+ε est le terme d'erreur, qui représente l'écart entre la valeur prédite du PIB par habitant et la valeur réelle.
+Le modèle de régression linéaire peut être ajusté aux données historiques du PIB par habitant en utilisant la méthode des moindres carrés ordinaires. Une fois le modèle ajusté, il peut être utilisé pour prédire le PIB par habitant pour les années futures.
+
+
+2. Modèle de régression ARIMA
+
+Un modèle de régression ARIMA (Autoregressive Integrated Moving Average) est une approche plus sophistiquée pour prédire une série temporelle, comme le PIB par habitant.
+
+3. Réseaux de neurones artificiels
+
+Les réseaux de neurones artificiels (RNA) sont une autre approche puissante pour prédire les séries temporelles. Les RNA sont des modèles d'apprentissage automatique inspirés du cerveau humain. Ils sont capables d'apprendre des relations complexes dans les données et de faire des prédictions précises.
+
+On a faire ces predictions à l'aide du modèle de progression linèaire: 
+
+*** prediction du GDP:
+```{r}
+library(base)
+data_df <- data.frame(Year = top_six_economies$Year+10, GDP = top_six_economies$`GDP( $Bn )`)
+
+# Diviser les données en ensemble d'entraînement et ensemble de test
+train_data <- subset(data_df, Year <= 2020)
+test_data <- subset(data_df, Year > 2020)
+
+# Ajuster un modèle de régression linéaire
+lm_model <- lm(GDP ~ Year, data = train_data)
+
+# Faire des prédictions sur l'ensemble de test
+predictions <- predict(lm_model, newdata = test_data)
+
+# Tracer les prédictions
+plot(data_df$Year, data_df$GDP, main="prediction pour GDP($Bn)",type = "l", col = "blue", xlab = "Year", ylab = "GDP ($Bn)")
+lines(test_data$Year, predictions, col = "red")
+legend("topleft", legend = c("Données réelles", "Prédictions"), col = c("blue", "red"), lty = c(1, 1))
+```
+
+*** prediction de l'inflation :
+
+```{r}
+library(base)
+data_df <- data.frame(Year = top_six_economies$Year+10, GDP = top_six_economies$`GDP( $Bn )`)
+
+# Diviser les données en ensemble d'entraînement et ensemble de test
+train_data <- subset(data_df, Year <= 2020)
+test_data <- subset(data_df, Year > 2020)
+
+# Ajuster un modèle de régression linéaire
+lm_model <- lm(GDP ~ Year, data = train_data)
+
+# Faire des prédictions sur l'ensemble de test
+predictions <- predict(lm_model, newdata = test_data)
+
+# Tracer les prédictions
+plot(data_df$Year, data_df$GDP, main="prediction pour GDP($Bn)",type = "l", col = "blue", xlab = "Year", ylab = "GDP ($Bn)")
+lines(test_data$Year, predictions, col = "red")
+legend("topleft", legend = c("Données réelles", "Prédictions"), col = c("blue", "red"), lty = c(1, 1))
+
+```
+
+*** prediction des exportations :
+
+```{r}
+library(base)
+data_df <- data.frame(Year = top_six_economies$Year+10, Exports = top_six_economies$`Exports ($Bn)`)
+
+# Diviser les données en ensemble d'entraînement et ensemble de test
+train_data <- subset(data_df, Year <= 2020)
+test_data <- subset(data_df, Year > 2020)
+
+# Ajuster un modèle de régression linéaire
+lm_model <- lm(Exports ~ Year, data = train_data)
+
+# Faire des prédictions sur l'ensemble de test
+predictions <- predict(lm_model, newdata = test_data)
+
+# Tracer les prédictions
+plot(data_df$Year, data_df$Exports, main="prediction pour les exportations",type = "l", col = "blue", xlab = "Year", ylab = "Exports($Bn)")
+lines(test_data$Year, predictions, col = "red")
+legend("topleft", legend = c("Données réelles", "Prédictions"), col = c("blue", "red"), lty = c(1, 1))
+
+
+```
+
+
+*** prediction des importations :
+
+```{r}
+library(base)
+data_df <- data.frame(Year = top_six_economies$Year+10, Imports = top_six_economies$`Imports ($Bn)`)
+
+# Diviser les données en ensemble d'entraînement et ensemble de test
+train_data <- subset(data_df, Year <= 2020)
+test_data <- subset(data_df, Year > 2020)
+
+# Ajuster un modèle de régression linéaire
+lm_model <- lm(Imports ~ Year, data = train_data)
+
+# Faire des prédictions sur l'ensemble de test
+predictions <- predict(lm_model, newdata = test_data)
+
+# Tracer les prédictions
+plot(data_df$Year, data_df$Imports, main="prediction pour les importations",type = "l", col = "blue", xlab = "Year", ylab = "Imports($Bn)")
+lines(test_data$Year, predictions, col = "red")
+legend("topleft", legend = c("Données réelles", "Prédictions"), col = c("blue", "red"), lty = c(1, 1))
+
+
+
+```
